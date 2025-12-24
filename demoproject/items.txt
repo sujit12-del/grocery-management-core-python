@@ -1,0 +1,4 @@
+Pencil ,12000.0,79
+book,60.0,90
+Drawing Book,50.0,250
+Laptop,20000.0,100
