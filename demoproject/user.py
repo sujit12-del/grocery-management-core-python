@@ -1,6 +1,5 @@
-# user.py
 import datetime
-from utils import load_items, save_items, record_sale, record_user_history, USER_HISTORY_FILE
+from utils import load_items, save_items, record_sale, record_user_history, USER_HISTORY_FILE, print_table
 
 def process_payment(total_amount):
     print("\n--- PAYMENT OPTIONS ---")
@@ -13,121 +12,154 @@ def process_payment(total_amount):
     choice = input("Choose payment method: ")
 
     if choice == "1":
-        print(f"Cash received: Rs.{total_amount}")
-        print("Payment Successful ✅")
+        print("Payment Successful (Cash)")
         return "Cash"
-
     elif choice == "2":
-        input("Enter UPI ID / Mobile Number: ")
-        print(f"Processing Rs.{total_amount} via UPI...")
-        print("Payment Successful ✅")
+        input("Enter UPI ID / Mobile: ")
+        print("Payment Successful (UPI)")
         return "UPI"
-
     elif choice == "3":
-        input("Enter Debit Card Number (last 4 digits): ")
+        input("Enter Debit Card Last 4 Digits: ")
         input("Enter PIN: ")
-        print("Processing Debit Card payment...")
-        print("Payment Successful ✅")
+        print("Payment Successful (Debit Card)")
         return "Debit Card"
-
     elif choice == "4":
-        input("Enter Credit Card Number (last 4 digits): ")
+        input("Enter Credit Card Last 4 Digits: ")
         input("Enter CVV: ")
-        print("Processing Credit Card payment...")
-        print("Payment Successful ✅")
+        print("Payment Successful (Credit Card)")
         return "Credit Card"
-
     else:
-        print("Invalid payment option!")
+        print("Invalid payment option")
         return None
 
-
 def generate_bill(username, purchased_items, total_amount, payment_mode):
-    bill_filename = f"bill_{username}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-
-    with open(bill_filename, "w") as f:
-        f.write("=== FERTILIZER SHOP BILL ===\n")
+    filename = f"bill_{username}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    
+    with open(filename, "w") as f:
+        f.write("========================================\n")
+        f.write("           FERTILIZER SHOP BILL         \n")
+        f.write("========================================\n")
         f.write(f"Customer: {username}\n")
-        f.write(f"Date: {datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')}\n")
-        f.write("----------------------------\n")
-        f.write("Item\tQty\tPrice\n")
-        f.write("----------------------------\n")
+        f.write(f"Date: {datetime.datetime.now().strftime('%d-%m-%Y')}\n")
+        f.write("----------------------------------------\n")
+        f.write(f"{'S.No':<5} {'Item':<20} {'Qty':<5} {'Amount':<10}\n")
+        f.write("----------------------------------------\n")
+        
+        for i, (item, data) in enumerate(purchased_items.items(), start=1):
+            f.write(f"{i:<5} {item:<20} {data['qty']:<5} Rs.{data['price']:<10}\n")
+        
+        f.write("----------------------------------------\n")
+        f.write(f"{'Total Amount':<30} Rs.{total_amount}\n")
+        f.write(f"{'Payment Mode':<30} {payment_mode}\n")
+        f.write("Status: SUCCESS\n")
+        f.write("========================================\n")
+        f.write("       Thank you for shopping with us!  \n")
+        f.write("========================================\n")
 
-        for item, details in purchased_items.items():
-            f.write(f"{item}\t{details['qty']}\tRs.{details['price']}\n")
-
-        f.write("----------------------------\n")
-        f.write(f"Total Amount: Rs.{total_amount}\n")
-        f.write(f"Payment Mode: {payment_mode}\n")
-        f.write("Payment Status: SUCCESS\n")
-        f.write("Thank you for shopping with us!\n")
-
-    print(f"\nBill generated: {bill_filename}")
+    print(f"\nBill Generated: {filename}\n")
 
 
 def user_menu(username):
     while True:
         print(f"\n--- USER MENU ({username}) ---")
         print("1. View Items")
-        print("2. Purchase Item")
+        print("2. Purchase Items")
         print("3. View Purchase History")
-        print("4. Back to Main Menu")
-        choice = input("Enter choice: ")
+        print("4. Back")
 
+        choice = input("Enter choice: ")
         items = load_items()
 
+        
         if choice == "1":
-            print("\n--- ITEMS AVAILABLE ---")
-            for name, data in items.items():
-                print(f"{name} - Price: {data['price']} - Qty: {data['qty']}")
+            headers = ["No", "Item", "Price", "Stock"]
+            rows = []
+            item_keys = list(items.keys())
 
+            for i, code in enumerate(item_keys, start=1):
+                d = items[code]
+                rows.append([i, d["name"], d["price"], d["qty"]])
+
+            print_table(headers, rows)
+
+        
         elif choice == "2":
             purchased_items = {}
             total_amount = 0
+            item_keys = list(items.keys())
+
+            
+            headers = ["No", "Item", "Price", "Stock"]
+            rows = []
+            for i, code in enumerate(item_keys, start=1):
+                d = items[code]
+                rows.append([i, d["name"], d["price"], d["qty"]])
+            print_table(headers, rows)
 
             while True:
-                name = input("Enter item name (or 'done' to finish): ").strip()
-                if name.lower() == "done":
+                choice_item = input("Enter Item No / Name (or 'done'): ").strip()
+                if choice_item.lower() == "done":
                     break
 
-                if name in items and items[name]['qty'] > 0:
-                    qty = int(input("Enter quantity: "))
-                    if qty <= items[name]['qty']:
-                        total = qty * items[name]['price']
-                        items[name]['qty'] -= qty
-                        save_items(items)
-                        record_sale(name, qty, total)
-                        record_user_history(username, name, qty, total)
+                selected_code = None
 
-                        purchased_items[name] = {"qty": qty, "price": total}
-                        total_amount += total
-                        print(f"Added {qty} x {name}")
-                    else:
-                        print("Not enough stock.")
+                if choice_item.isdigit():
+                    index = int(choice_item) - 1
+                    if 0 <= index < len(item_keys):
+                        selected_code = item_keys[index]
                 else:
-                    print("Item not available.")
+                    for code, d in items.items():
+                        if d["name"].lower() == choice_item.lower():
+                            selected_code = code
+                            break
+
+                if not selected_code:
+                    print("Invalid selection")
+                    continue
+
+                
+                qty_input = input("Enter Quantity: ").strip()
+                if not qty_input.isdigit() or int(qty_input) <= 0:
+                    print("Invalid quantity")
+                    continue
+
+                qty = int(qty_input)
+                item = items[selected_code]
+
+                if qty > item["qty"]:
+                    print("Not enough stock")
+                    continue
+
+                total = qty * item["price"]
+                item["qty"] -= qty
+                save_items(items)
+
+                record_sale(item["name"], qty, total)
+                record_user_history(username, item["name"], qty, total)
+
+                purchased_items[item["name"]] = {"qty": qty, "price": total}
+                total_amount += total
+
+                print(f"Added {qty} x {item['name']}")
 
             if purchased_items:
                 payment_mode = process_payment(total_amount)
                 if payment_mode:
                     generate_bill(username, purchased_items, total_amount, payment_mode)
-                else:
-                    print("Payment Failed ❌")
-            else:
-                print("No items purchased.")
 
+        
         elif choice == "3":
-            print("\n--- PURCHASE HISTORY ---")
+            headers = ["Item", "Qty", "Total"]
+            rows = []
             try:
                 with open(USER_HISTORY_FILE, "r") as f:
                     for line in f:
                         user, item, qty, total = line.strip().split(",")
                         if user == username:
-                            print(f"{item} - Qty: {qty} - Total: {total}")
+                            rows.append([item, qty, total])
+                print_table(headers, rows)
             except FileNotFoundError:
-                print("No purchase history found.")
+                print("No history found")
 
         elif choice == "4":
             break
-        else:
-            print("Invalid choice!")

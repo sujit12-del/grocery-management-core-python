@@ -1,4 +1,3 @@
-
 from admin import admin_menu
 from user import user_menu
 from auth import register_admin, register_user, login_admin, login_user
@@ -11,29 +10,22 @@ def main():
         print("3. Register Admin")
         print("4. Register User")
         print("5. Exit")
-        role = input("Enter choice: ")
 
-        if role == "1":
+        ch = input("Enter choice: ")
+
+        if ch == "1":
             if login_admin():
                 admin_menu()
-
-        elif role == "2":
-            username = login_user()
-            if username:
-                user_menu(username)
-
-        elif role == "3":
+        elif ch == "2":
+            u = login_user()
+            if u:
+                user_menu(u)
+        elif ch == "3":
             register_admin()
-
-        elif role == "4":
+        elif ch == "4":
             register_user()
-
-        elif role == "5":
-            print("Thank you!")
+        elif ch == "5":
             break
-
-        else:
-            print("Invalid choice!")
 
 if __name__ == "__main__":
     main()
